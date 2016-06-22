@@ -38,12 +38,14 @@ for table in tables:
     tableList[table[0]] = 0
 print(tableList)
 
+
+# http://stackoverflow.com/questions/8739203/oracle-query-to-fetch-column-names
 for table in tableList:
-    query = "SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = \'"
+    query = "SELECT COLUMN_NAME FROM ALL_TAB_COLS WHERE OWNER = \'" 	# Risk from SQL Injection
     query += dbName
     query += "\' AND TABLE_NAME = \'"
     query += table
-    query += "'"
+    query += " AND column_name NOT IN ( 'password', 'version', 'id' )'"
     cursor.execute(query)
 
     columns = [column[0] for column in cursor.fetchall()]
