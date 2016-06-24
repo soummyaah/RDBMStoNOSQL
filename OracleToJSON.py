@@ -1,8 +1,5 @@
 import cx_Oracle
 import json
-
-# import MySQLdb
-import json
 import collections
 import sys
 from datetime import datetime
@@ -10,7 +7,9 @@ from datetime import datetime
 if len(sys.argv)!=6:
     print("Correct usage: ./OracleToJSON.py <url:port> <user> <password> <dbName> <tableName>")
     sys.exit()
-# 'axia2/axia2@10.1.50.79:1521/ndaie2'
+
+	
+	# 'axia2/axia2@10.1.50.79:1521/ndaie2'
 url = sys.argv[1] # url:port
 user = sys.argv[2]
 password = sys.argv[3]
@@ -38,7 +37,7 @@ cursor = con.cursor()
 # print(tableList)
 
 
-# http://stackoverflow.com/questions/8739203/oracle-query-to-fetch-column-names
+#To fetch Column Names
 query = "SELECT COLUMN_NAME FROM cols WHERE TABLE_NAME = \'" 	# Risk from SQL Injection
 query += tableName
 query += "'"
@@ -48,12 +47,15 @@ columns = [column[0] for column in cursor.fetchall()]
 
 # print(columns)
 
+# To fetch rows
 query = "SELECT * FROM "
 query += tableName
 cursor.execute(query)
 
 rows = cursor.fetchall()
 # print(rows)
+
+# Converting rows to a list
 rowarray_list = []
 for row in rows:
 	t = []
@@ -70,6 +72,7 @@ for row in rows:
 print(rowarray_list)
 j = json.dumps(rowarray_list)
 
+# To convert data to a list of json objects
 objects_list = []
 for row in rows:
 	d = collections.OrderedDict()
@@ -85,15 +88,19 @@ for row in rows:
 
 j = json.dumps(objects_list)
 
+# To get PrimaryKey column name.
+# Assumes only 1 PK exists
 query = "SELECT cols.table_name, cols.column_name, cols.position, cons.status, cons.owner FROM all_constraints cons, all_cons_columns cols WHERE cols.table_name = '"
 query += tableName
 query += "' AND cons.constraint_type = 'P' AND cons.constraint_name = cols.constraint_name AND cons.owner = cols.owner ORDER BY cols.table_name, cols.position"
 cursor.execute(query)
 primaryKey = cursor.fetchall()[0][1]       # Assumes only one PK
 
+# File Name
 objects_file = dbName + "-" + tableName + "-" + primaryKey + ".json" 
 f = open(objects_file,'w')
 
+# Printing to file
 print(j, end="", file=f)
 print("Yay")
 
