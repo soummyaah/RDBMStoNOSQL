@@ -1,97 +1,100 @@
 import cx_Oracle
 import json
 
-import MySQLdb
+# import MySQLdb
 import json
 import collections
 import sys
 from datetime import datetime
 
-if len(sys.argv)!=4:
-    print("Correct usage: ./OracleToJSON.py <user> <password> <dbName>")
+if len(sys.argv)!=6:
+    print("Correct usage: ./OracleToJSON.py <url:port> <user> <password> <dbName> <tableName>")
     sys.exit()
-
-user = sys.argv[1]
-password = sys.argv[2]
-dbName = sys.argv[3]
-
-axia2@//10.1.50.79:1521/ndaie2
-
-connectionURL = user + "/" + password + "@127.0.0.1/" + dbName
+# 'axia2/axia2@10.1.50.79:1521/ndaie2'
+url = sys.argv[1] # url:port
+user = sys.argv[2]
+password = sys.argv[3]
+dbName = sys.argv[4]
+tableName = sys.argv[5]
+connectionURL = user + "/" + password + "@" + url + "/" + dbName
+print(connectionURL)
 con = cx_Oracle.connect(connectionURL)
 print(con.version)
-exit(1)
 cursor = con.cursor()
 
-# cursor.execute("SHOW DATABASES")
+# cursor.execute("SELECT * FROM dba_users")
 # print cursor.fetchall()
 
-query = "USE "
-query += dbName
-cursor.execute(query)
+# query = "USE "
+# query += dbName
+# cursor.execute(query)
 
-cursor.execute("SHOW TABLES")
-tables = cursor.fetchall()
+# cursor.execute("select * from tab")
+# tables = cursor.fetchall()
 
-tableList = {}
-for table in tables:
-    tableList[table[0]] = 0
-print(tableList)
+# tableList = {}
+# for table in tables:
+    # tableList[table[0]] = 0
+# print(tableList)
 
 
 # http://stackoverflow.com/questions/8739203/oracle-query-to-fetch-column-names
-for table in tableList:
-    query = "SELECT COLUMN_NAME FROM ALL_TAB_COLS WHERE OWNER = \'" 	# Risk from SQL Injection
-    query += dbName
-    query += "\' AND TABLE_NAME = \'"
-    query += table
-    query += " AND column_name NOT IN ( 'password', 'version', 'id' )'"
-    cursor.execute(query)
+query = "SELECT COLUMN_NAME FROM cols WHERE TABLE_NAME = \'" 	# Risk from SQL Injection
+query += tableName
+query += "'"
+cursor.execute(query)
 
-    columns = [column[0] for column in cursor.fetchall()]
+columns = [column[0] for column in cursor.fetchall()]
 
-    query = "SELECT * FROM "
-    query += table
-    cursor.execute(query)
+# print(columns)
 
-    rows = cursor.fetchall()
-    print(rows)
-    rowarray_list = []
-    for row in rows:
-        t = []
-        for i in xrange(len(columns)):
-            try:
-                trial = json.dumps(row[i])
-                t.append(row[i])
-            except TypeError:
-                t.append(str(row[i]))
-            else:
-                pass
-        rowarray_list.append(tuple(t))
+query = "SELECT * FROM "
+query += tableName
+cursor.execute(query)
 
-    print(rowarray_list)
-    j = json.dumps(rowarray_list)
-    print("Yay")
+rows = cursor.fetchall()
+# print(rows)
+rowarray_list = []
+for row in rows:
+	t = []
+	for i in range(len(columns)):
+		try:
+			trial = json.dumps(row[i])
+			t.append(row[i])
+		except TypeError:
+			t.append(str(row[i]))
+		else:
+			pass
+	rowarray_list.append(tuple(t))
 
-    objects_list = []
-    for row in rows:
-        d = collections.OrderedDict()
-        for i in xrange(len(columns)):
-            try:
-                trial = json.dumps(row[i])
-                d[columns[i]] = row[i]
-            except TypeError:
-                d[columns[i]] = str(row[i])
-            else:
-                pass
-        objects_list.append(d)
+print(rowarray_list)
+j = json.dumps(rowarray_list)
 
-    j = json.dumps(objects_list)
-    objects_file = dbName + "|" + table + ".json"
-    f = open(objects_file,'w')
-    cursor.execute("SHOW INDEX FROM " + table)
-    primaryKey = cursor.fetchall()[0]       # Assumes only one PK
-    print >> f, primaryKey[4]
-    print >> f, j
+objects_list = []
+for row in rows:
+	d = collections.OrderedDict()
+	for i in range(len(columns)):
+		try:
+			trial = json.dumps(row[i])
+			d[columns[i]] = row[i]
+		except TypeError:
+			d[columns[i]] = str(row[i])
+		else:
+			pass
+	objects_list.append(d)
+
+j = json.dumps(objects_list)
+
+query = "SELECT cols.table_name, cols.column_name, cols.position, cons.status, cons.owner FROM all_constraints cons, all_cons_columns cols WHERE cols.table_name = '"
+query += tableName
+query += "' AND cons.constraint_type = 'P' AND cons.constraint_name = cols.constraint_name AND cons.owner = cols.owner ORDER BY cols.table_name, cols.position"
+cursor.execute(query)
+primaryKey = cursor.fetchall()[0][1]       # Assumes only one PK
+
+objects_file = dbName + "-" + tableName + "-" + primaryKey + ".json" 
+f = open(objects_file,'w')
+
+print(j, end="", file=f)
+print("Yay")
 
 con.close()
