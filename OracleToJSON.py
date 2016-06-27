@@ -36,7 +36,6 @@ cursor = con.cursor()
     # tableList[table[0]] = 0
 # print(tableList)
 
-
 #To fetch Column Names
 query = "SELECT COLUMN_NAME FROM cols WHERE TABLE_NAME = \'" 	# Risk from SQL Injection
 query += tableName
@@ -45,8 +44,70 @@ cursor.execute(query)
 
 columns = [column[0] for column in cursor.fetchall()]
 
-# print(columns)
+# To fetch Foreign Keys
 
+cursor.execute("SELECT * FROM ALL_CONS_COLUMNS WHERE TABLE_NAME='" + tableName + "' AND POSITION=1")
+a = cursor.fetchall()
+relations = [x for x in a if 'FK' in x[1]]
+
+constraintNameToColumnMapper = {}
+for i in relations:
+	constraintNameToColumnMapper[i[1]] = (i[3], i[2],)
+
+relationResult = []
+for i in relations:
+	query = "SELECT * FROM ALL_CONSTRAINTS WHERE CONSTRAINT_NAME='"
+	cursor.execute(query + i[1] + "'")
+	relationResult.append(cursor.fetchall())
+	
+constraintToConstraintMapper = []
+for i in relationResult:
+	constraintToConstraintMapper.append([i[0][1],i[0][6]])
+	
+relationResult = []
+for i in constraintToConstraintMapper:
+	query = "SELECT * FROM ALL_CONS_COLUMNS WHERE CONSTRAINT_NAME='"
+	cursor.execute(query + i[1] + "'")
+	relationResult.append(cursor.fetchall())
+	
+for i in relationResult:
+	constraintNameToColumnMapper[i[0][1]] = (i[0][3], i[0][2])
+
+keys = []
+for i in constraintToConstraintMapper:
+	first = constraintNameToColumnMapper[i[0]]
+	second = constraintNameToColumnMapper[i[1]]
+	keys.append([first, second])
+
+print("Foreign Keys:","\n")
+print("Index [(ColumnName1, TableName1), (ColumnName2, TableName2)]", "\n")
+for index, elem in enumerate(keys):
+	print(index, elem,"\n")
+
+
+
+# Take choice of FK to be included	
+print("Include any column as new object within original JSON object?(Y/N):")
+choice = input()
+includeFK = []
+while choice=='y' or choice=='Y' or choice=="yes":
+	id = int(input())
+	if id >= 0 and id < len(keys):
+		includeFK.append(keys[id])
+	else:
+		print("Invalid id")
+	print("Include any other column(Y/N):")
+	choice = input()
+
+print(includeFK)
+FKColumnName = []
+for i in includeFK:
+	if tableName==i[0][1]:
+		FKColumnName.append(i[0][0])
+	else:
+		FKColumnName.append(i[1][0])
+
+print(FKColumnName)
 # To fetch rows
 query = "SELECT * FROM "
 query += tableName
@@ -55,35 +116,56 @@ cursor.execute(query)
 rows = cursor.fetchall()
 # print(rows)
 
-# Converting rows to a list
-rowarray_list = []
-for row in rows:
-	t = []
-	for i in range(len(columns)):
-		try:
-			trial = json.dumps(row[i])
-			t.append(row[i])
-		except TypeError:
-			t.append(str(row[i]))
-		else:
-			pass
-	rowarray_list.append(tuple(t))
-
-print(rowarray_list)
-j = json.dumps(rowarray_list)
+print(columns)
 
 # To convert data to a list of json objects
 objects_list = []
 for row in rows:
 	d = collections.OrderedDict()
 	for i in range(len(columns)):
-		try:
-			trial = json.dumps(row[i])
-			d[columns[i]] = row[i]
-		except TypeError:
-			d[columns[i]] = str(row[i])
+		if columns[i] in FKColumnName:
+			print(row[i])
+			for z in keys:
+				if columns[i] == z[0][0] and tableName == z[0][1]:
+					FKTableName = z[1][1]
+					query = "SELECT * FROM " + FKTableName + " WHERE " + z[1][0] + "=" + str(row[i])
+				elif columns[i] == z[1][0] and tableName == z[1][1]:
+					FKTableName = z[0][1]
+					query = "SELECT * FROM " + FKTableName + " WHERE " + z[0][0] + "=" + str(row[i])
+			print(FKTableName)
+			print(query)
+			cursor.execute(query)
+			FKRows = cursor.fetchall()
+			print(FKRows)
+			FKColumns = []
+			query = "SELECT COLUMN_NAME FROM cols WHERE TABLE_NAME = \'" 	# Risk from SQL Injection
+			query += FKTableName
+			query += "'"
+			cursor.execute(query)
+			
+			FKColumns = [column[0] for column in cursor.fetchall()]
+			print(FKColumns)
+			fkobjects_list = []
+			for fkrow in FKRows:
+				q = collections.OrderedDict()
+				for z in range(len(FKColumns)):
+					try:
+						trial = json.dumps(fkrow[z])
+						q[FKColumns[z]] = fkrow[z]
+					except TypeError:
+						d[FKColumns[z]] = str(fkrow[z])
+					else:
+						pass
+				fkobjects_list.append(q)
+				d[columns[i]] = fkobjects_list
 		else:
-			pass
+			try:
+				trial = json.dumps(row[i])
+				d[columns[i]] = row[i]
+			except TypeError:
+				d[columns[i]] = str(row[i])
+			else:
+				pass
 	objects_list.append(d)
 
 j = json.dumps(objects_list)
