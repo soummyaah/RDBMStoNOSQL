@@ -8,3 +8,6 @@ Contains script to convert RDBMS to NOSQL
 - [x] JSON to MongoDB
 - JSON to csv
 - Creation of master table in NoSQL
+- [x] Create inputFile Format
+- Create Program to read Input file
+- Create program to process input file

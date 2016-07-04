@@ -31,21 +31,21 @@ for i in relations:
 	query = "SELECT * FROM ALL_CONSTRAINTS WHERE CONSTRAINT_NAME='"
 	cursor.execute(query + i[1] + "'")
 	relationResult.append(cursor.fetchall())
-	
+
 constraintToConstraintMapper = []
 for i in relationResult:
 	constraintToConstraintMapper.append([i[0][1],i[0][6]])
-	
+
 relationResult = []
 for i in constraintNameToColumnMapper:
 	query = "SELECT * FROM ALL_CONSTRAINTS WHERE CONSTRAINT_NAME='"
 	cursor.execute(query + i[1] + "'")
 	relationResult.append(cursor.fetchall())
-	
+
 for i in relationResult:
 	constraintNameToColumnMapper[i[0][1]] = i[0][3]
 
-	
+
 keys = []
 for i in constraintNameToColumnMapper:
 	first = constraintNameToColumnMapper[i]
@@ -55,4 +55,4 @@ for i in constraintNameToColumnMapper:
 		if i[1] == first:
 			second = constraintNameToColumnMapper[i[0]]
 	keys.append(first, second)
-	
+

@@ -1,0 +1,24 @@
+[{
+    "PK": "PaymentID",
+    "TableName": "Payments",
+    "Columns": {
+        "PaymentID": {},
+        "CustomerName": {
+            "TableName": "Customer",
+            "Columns": {
+                "Age": {},
+                "Name": {}
+            }
+        },
+    "Address": {
+        "TableName": "CustomerAddress",
+        "Columns": {
+            }
+        }
+    }
+}]
+
+
+
+// Here blank list means take column value as it is. Eg - in case of PaymentID.
+// Blank Columns List as in case of Address means take all columns

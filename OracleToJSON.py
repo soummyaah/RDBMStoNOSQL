@@ -8,8 +8,8 @@ if len(sys.argv)!=6:
     print("Correct usage: ./OracleToJSON.py <url:port> <user> <password> <dbName> <tableName>")
     sys.exit()
 
-	
-	# 'axia2/axia2@10.1.50.79:1521/ndaie2'
+
+# 'axia2/axia2@10.1.50.79:1521/ndaie2'
 url = sys.argv[1] # url:port
 user = sys.argv[2]
 password = sys.argv[3]
@@ -59,17 +59,17 @@ for i in relations:
 	query = "SELECT * FROM ALL_CONSTRAINTS WHERE CONSTRAINT_NAME='"
 	cursor.execute(query + i[1] + "'")
 	relationResult.append(cursor.fetchall())
-	
+
 constraintToConstraintMapper = []
 for i in relationResult:
 	constraintToConstraintMapper.append([i[0][1],i[0][6]])
-	
+
 relationResult = []
 for i in constraintToConstraintMapper:
 	query = "SELECT * FROM ALL_CONS_COLUMNS WHERE CONSTRAINT_NAME='"
 	cursor.execute(query + i[1] + "'")
 	relationResult.append(cursor.fetchall())
-	
+
 for i in relationResult:
 	constraintNameToColumnMapper[i[0][1]] = (i[0][3], i[0][2])
 
@@ -86,7 +86,7 @@ for index, elem in enumerate(keys):
 
 
 
-# Take choice of FK to be included	
+# Take choice of FK to be included
 print("Include any column as new object within original JSON object?(Y/N):")
 choice = input()
 includeFK = []
@@ -142,7 +142,7 @@ for row in rows:
 			query += FKTableName
 			query += "'"
 			cursor.execute(query)
-			
+
 			FKColumns = [column[0] for column in cursor.fetchall()]
 			print(FKColumns)
 			fkobjects_list = []
@@ -179,7 +179,7 @@ cursor.execute(query)
 primaryKey = cursor.fetchall()[0][1]       # Assumes only one PK
 
 # File Name
-objects_file = dbName + "-" + tableName + "-" + primaryKey + ".json" 
+objects_file = dbName + "-" + tableName + "-" + primaryKey + ".json"
 f = open(objects_file,'w')
 
 # Printing to file
